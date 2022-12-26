@@ -8,9 +8,9 @@ class Entry:
     def get_entries_chain(self, entries):
         current_entry = self
         while True:
-            if current_entry == -1 or current_entry is None:
-                break
             yield current_entry
+            if current_entry.next_entry == -1:
+                break
             current_entry = entries[current_entry.next_entry]
 
 
@@ -21,11 +21,9 @@ class ChainingDictionary:
         self._elements_count = 0
 
     def add(self, key, value):
-        self._elements_count += 1
-
-        if self._elements_count > len(self._entries):  # расширение словаря
+        if self._elements_count == len(self._entries):  # расширение словаря
             self._extend()
-            self._elements_count += 1
+        self._elements_count += 1
 
         new_entry = Entry(self._get_hash_code(key), key, -1, value)
 
@@ -44,8 +42,12 @@ class ChainingDictionary:
         return self._find_entry(key).value
 
     def __setitem__(self, key, value):
-        entry = self._find_entry(key)
-        entry.value = value
+        try:
+            entry = self._find_entry(key)
+            entry.value = value
+        except KeyError:
+            self.add(key, value)
+
 
     def _find_entry(self, key):
         key_hash_code = self._get_hash_code(key)

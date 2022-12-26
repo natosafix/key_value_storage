@@ -19,8 +19,11 @@ def test_empty(empty_chaining_dictionary):
 def test_not_existed_key(empty_chaining_dictionary):
     with pytest.raises(KeyError):
         a = empty_chaining_dictionary[1]
-    with pytest.raises(KeyError):
-        empty_chaining_dictionary[1] = 1
+
+
+def test_add_by_indexer(empty_chaining_dictionary):
+    empty_chaining_dictionary[1] = 2
+    assert empty_chaining_dictionary[1] == 2
 
 
 def test_unhashable_key(empty_chaining_dictionary):
