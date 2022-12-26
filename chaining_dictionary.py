@@ -5,8 +5,8 @@ class Entry:
         self.next_entry = next_entry
         self.value = value
 
-    def get_next_entries(self, entries):
-        current_entry = entries[self.next_entry]
+    def get_entries_chain(self, entries):
+        current_entry = self
         while True:
             if current_entry == -1 or current_entry is None:
                 break
@@ -22,25 +22,54 @@ class ChainingDictionary:
 
     def __add__(self, key, value):
         self.elements_count += 1
+
         if self.elements_count > len(self.entries):  # расширение словаря
             self._extend()
             self.elements_count += 1
-        try:
-            new_entry = Entry(hash(key) % len(self.entries), key, -1, value)
-        except TypeError:
-            raise
+
+        new_entry = Entry(self._get_hash_code(key), key, -1, value)
+
         if self.buckets[new_entry.hash_code] is not None:
             new_entry.next_entry = self.buckets[new_entry.hash_code]
-        for entry in new_entry.get_next_entries(self.entries):
-            if new_entry.key == entry.key:
-                raise KeyError(f'Key {new_entry.key} already in dictionary')
+            for entry in self.entries[new_entry.next_entry].get_entries_chain(
+                    self.entries):
+                if new_entry.key == entry.key:
+                    raise KeyError(
+                        f'Key {new_entry.key} already in dictionary')
+
         self.entries[self.elements_count - 1] = new_entry
         self.buckets[new_entry.hash_code] = self.elements_count - 1
+
+    def __getitem__(self, key):
+        return self._find_entry(key).value
+
+    def __setitem__(self, key, value):
+        entry = self._find_entry(key)
+        entry.value = value
+
+    def _find_entry(self, key):
+        key_hash_code = self._get_hash_code(key)
+        entry_index = self.buckets[key_hash_code]
+        if entry_index is None:
+            raise KeyError(f'No key {key} in dictionary')
+
+        first_entry = self.entries[entry_index]
+        for entry in first_entry.get_entries_chain(self.entries):
+            if entry.key == key:
+                return entry
+        raise KeyError(f'No key {key} in dictionary')
 
     def items(self):
         for entry in self.entries:
             if entry is not None:
                 yield entry.key, entry.value
+
+    def __str__(self):
+        parsed_entries = []
+        for key, value in self.items():
+            parsed_entries.append(
+                f'{key.__str__()}: {value.__str__()}')
+        return f'{{{", ".join(parsed_entries)}}}'
 
     def _extend(self):
         new_capacity = self._find_next_prime(len(self.entries) * 2)
@@ -50,6 +79,13 @@ class ChainingDictionary:
         self.__init__(new_capacity)
         for key, value in entries:
             self.__add__(key, value)
+
+    def _get_hash_code(self, key):
+        try:
+            key_hash_code = hash(key) % len(self.entries)
+        except TypeError:
+            raise
+        return key_hash_code
 
     @staticmethod
     def _find_next_prime(start):
